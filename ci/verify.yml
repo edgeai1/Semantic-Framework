@@ -1,0 +1,97 @@
+# 开发 PR（功能分支 push）和合入 MR（目标 develop）共用快路径。目标 10–15 分钟。
+lint:
+  stage: validate
+  extends:
+    - .verify_rules
+    - .go_cache
+    - .golang_image
+  timeout: 15m
+  script:
+    - export PATH="$GOBIN:$PATH"
+    - bash ci/validate-release-assets.sh ci/release.yml
+    - test -z "$(gofmt -l $(git ls-files '*.go'))"
+    - go vet ./...
+    - bash ci/install-golangci-lint.sh
+    - golangci-lint run
+    - go mod tidy
+    - git diff --exit-code -- go.mod go.sum
+
+test:
+  stage: test
+  extends:
+    - .go_code_rules
+    - .go_cache
+    - .golang_image
+  timeout: 20m
+  variables:
+    # 限流并行：Runner 与其他任务共享且可能满载，默认每个 -race 测试
+    # 二进制按全部核数起线程（28 包 × 28 线程抢 28 核），调度饥饿曾使
+    # 时序敏感的集成/交互测试连续超时（Pipeline #5014/#5020）。
+    # -p 2 × GOMAXPROCS=8 = 16 工作线程，低于核数消除超订，同时保留
+    # 并行度（全量时长与默认并行相当）。
+    GOMAXPROCS: "8"
+  script:
+    - export PATH="$GOBIN:$PATH"
+    - mkdir -p .output
+    - go test -p 2 ./... -race -count=1 -coverprofile=.output/coverage.out
+  artifacts:
+    when: always
+    paths:
+      - .output/coverage.out
+    expire_in: 7 days
+
+v040_contracts:
+  stage: test
+  extends:
+    - .simulation_contract_rules
+    - .go_cache
+    - .golang_image
+  timeout: 15m
+  script:
+    - export PATH="$GOBIN:$PATH"
+    - make test-v040-contracts
+
+gitleaks:
+  stage: security
+  extends:
+    - .verify_rules
+    - .golang_image
+  timeout: 5m
+  variables:
+    GIT_DEPTH: "1"
+  script:
+    - bash ci/install-gitleaks.sh
+    - mkdir -p /tmp/gitleaks-src
+    - git archive HEAD | tar -x -C /tmp/gitleaks-src
+    - .ci-bin/gitleaks detect --no-git --source /tmp/gitleaks-src --config /tmp/gitleaks-src/.gitleaks.toml --verbose
+
+build:
+  stage: build
+  extends:
+    - .verify_rules
+    - .go_cache
+    - .golang_image
+  timeout: 15m
+  needs:
+    - lint
+    - job: test
+      optional: true
+    - gitleaks
+    - job: v040_contracts
+      optional: true
+  script:
+    - export PATH="$GOBIN:$PATH"
+    - |
+      if [ -n "$CI_COMMIT_TAG" ]; then
+        BUILD_VERSION="$(echo "$CI_COMMIT_TAG" | sed 's/^v//')"
+      else
+        BUILD_VERSION="dev-$CI_PIPELINE_IID-$CI_COMMIT_SHORT_SHA"
+      fi
+      make build VERSION="$BUILD_VERSION"
+      echo "BUILD_VERSION=$BUILD_VERSION" > build.env
+  artifacts:
+    paths:
+      - .output/bin/
+    reports:
+      dotenv: build.env
+    expire_in: 7 days

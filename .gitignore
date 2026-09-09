@@ -1,0 +1,29 @@
+# 构建产物与运行时输出
+bin/
+.output/
+output/
+.go/
+.ci-bin/
+*.log
+build.env
+
+# 本地组合环境与临时测试数据不进入代码仓库
+/integration/
+/testdata/
+
+# 依赖与密钥（一律不入库）
+.env
+.env.*
+!.env.example
+
+# OS / IDE
+.DS_Store
+.idea/
+.vscode/
+
+# 本地调试残留
+__pycache__/
+*.py[cod]
+*.orig
+*.rej
+/semantic.db

@@ -1,0 +1,105 @@
+# 晋升层：不进普通 MR。缺制品或旁路仓库时失败，不能 skip 当绿。
+v040_simulation_plugin_real:
+  stage: gate
+  tags: [semantic-v040-native]
+  extends:
+    - .v040_real_rules
+    - .go_cache
+    - .golang_image
+  timeout: 20m
+  script:
+    - export PATH="$GOBIN:$PATH"
+    - test -n "$PLUGIN_MUJOCO_URL"
+    - make test-simulation-plugin
+
+v040_simulation_profile_real:
+  stage: gate
+  tags: [semantic-mujoco-robosuite]
+  extends:
+    - .v040_real_rules
+    - .go_cache
+    - .golang_image
+  timeout: 20m
+  script:
+    - export PATH="$GOBIN:$PATH"
+    - test -n "$PLUGIN_MUJOCO_PROFILE_URL"
+    - make test-simulation-profile
+
+# 固定验证 libero_spatial:0；Runtime 由同标签 Runner 上的固定组合提供。
+v040_simulation_libero_real:
+  stage: gate
+  tags: [semantic-mujoco-libero]
+  extends:
+    - .v040_real_rules
+    - .go_cache
+    - .golang_image
+  timeout: 30m
+  script:
+    - export PATH="$GOBIN:$PATH"
+    - test -n "$PLUGIN_MUJOCO_PROFILE_URL"
+    - test -n "$SEMANTIC_LIBERO_ROOT"
+    - test -n "$SEMANTIC_LIBERO_REVISION"
+    - test -n "$SIMULATION_EVIDENCE_DIR"
+    - test "$SIMULATION_EVIDENCE_DIR" = "$CI_PROJECT_DIR/.output/test-evidence"
+    - make test-simulation-libero
+  artifacts:
+    when: always
+    paths: [.output/test-evidence/framework/]
+    expire_in: 30 days
+
+v050_real_gate:
+  stage: gate
+  tags: [semantic-v050-gate]
+  extends: .v050_fake_rules
+  resource_group: v050-fake
+  timeout: 45m
+  needs:
+    - job: build
+      artifacts: true
+  script:
+    - bash ci/run-v050-real-gate.sh
+  artifacts:
+    when: always
+    paths:
+      - .output/v050-real-gate/
+    expire_in: 14 days
+
+v050_mujoco_product:
+  stage: gate
+  tags: [semantic-v050-mujoco]
+  extends: .v050_mujoco_rules
+  resource_group: v050-mujoco
+  timeout: 60m
+  needs:
+    - job: build
+      artifacts: true
+    - job: v050_real_gate
+      optional: true
+  script:
+    - bash ci/run-v050-mujoco-product.sh
+  artifacts:
+    when: always
+    paths:
+      - .output/v050-mujoco-product/
+    expire_in: 14 days
+
+# 真实模型只接受手动流水线，且必须显式打开开关。不在 MR / fork 上跑。
+v050_mujoco_deepseek:
+  stage: gate
+  tags: [semantic-v050-mujoco]
+  interruptible: false
+  resource_group: v050-mujoco
+  timeout: 90m
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "web" && $SEMANTIC_DEEPSEEK_ENABLED == "1"'
+    - when: never
+  needs:
+    - job: build
+      artifacts: true
+  script:
+    - bash ci/run-v050-mujoco-deepseek.sh
+  artifacts:
+    when: always
+    paths:
+      - .output/v050-mujoco-deepseek/
+    expire_in: 14 days

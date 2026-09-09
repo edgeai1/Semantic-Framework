@@ -1,0 +1,22 @@
+name: developer
+mode: worker
+description: 在 Workflow 调度下完成 Developer Task，并把结果与证据返回给 Task
+instruction_file: AGENT.md
+
+tools:
+  namespaces: [system.*, artifact.*, execute, execute_host, map.query, interaction.ask]
+  pinned: [system.time, map.query]
+  tool_search: true
+
+limits:
+  max_turns: 20
+  context_tokens: 120000
+
+interrupt:
+  approval_required: [artifact.put]
+
+memory:
+  long_term: false
+
+skills:
+  allowlist: [artifact-usage, echo-guide, data-profile, semantic-diagnostics]

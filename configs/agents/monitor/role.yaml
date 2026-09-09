@@ -1,0 +1,22 @@
+name: monitor
+mode: worker
+description: 在 Workflow 调度下独立验证 Task 结果和异常证据
+instruction_file: AGENT.md
+
+tools:
+  namespaces: [system.*, artifact.get, artifact.list, map.query, interaction.ask]
+  pinned: [artifact.get, artifact.list]
+  tool_search: true
+
+limits:
+  max_turns: 12
+  context_tokens: 80000
+
+interrupt:
+  approval_required: []
+
+memory:
+  long_term: false
+
+skills:
+  allowlist: []

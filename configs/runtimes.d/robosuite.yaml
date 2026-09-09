@@ -1,0 +1,29 @@
+schema_version: 1
+installation_id: local-robosuite-1-5
+development: true
+profile:
+  runtime_profile_id: robosuite-1.5
+  name: robosuite 1.5
+  engine: mujoco
+  loader: robosuite
+  api_version: v1
+  scene_kinds: [robosuite]
+  capabilities:
+    editable_scene: false
+    native_evaluator: true
+    viewer: true
+    viewer_camera_modes: [fixed]
+    scene_step: true
+    scene_reset: true
+    robot_models: [franka_panda]
+    sensor_kinds: [rgb, depth, contact, robot_state]
+launch_mode: uv
+endpoint: http://127.0.0.1:8091
+workdir: ${SEMANTIC_MUJOCO_WORKDIR}
+command: [uv, run, --project, profiles/robosuite, --frozen, semantic-sim-runtime]
+environment_refs:
+  FRANKA_MODEL_ROOT: SEMANTIC_FRANKA_MODEL_ROOT
+hardware_requirements:
+  cpu: x86_64
+enabled: true
+installed_version: robosuite-1.5

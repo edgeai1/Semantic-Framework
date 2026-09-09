@@ -1,0 +1,27 @@
+# golangci-lint 配置（v1.x 配置格式）。
+# docs/ 与 changelog/ 为纯文档目录，不参与 Go 代码检查。
+run:
+  timeout: 5m
+
+issues:
+  exclude-dirs:
+    - docs
+    - changelog
+
+linters:
+  disable-all: true
+  enable:
+    - govet
+    - gofmt
+    - staticcheck
+    - errcheck
+    - gosimple
+    - unused
+    - revive
+
+linters-settings:
+  revive:
+    rules:
+      # 导出注释必须以被导出符号名开头（仓库注释规范）。
+      - name: exported
+        disabled: false

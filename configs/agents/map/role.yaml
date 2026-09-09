@@ -1,0 +1,22 @@
+name: map
+mode: worker
+description: 在 Workflow 调度下整理地图实体、关系与版本证据
+instruction_file: AGENT.md
+
+tools:
+  namespaces: [map.*, artifact.get, artifact.list, artifact.put, system.*, interaction.ask]
+  pinned: [map.query, artifact.get]
+  tool_search: true
+
+limits:
+  max_turns: 16
+  context_tokens: 80000
+
+interrupt:
+  approval_required: [artifact.put]
+
+memory:
+  long_term: false
+
+skills:
+  allowlist: [artifact-usage]

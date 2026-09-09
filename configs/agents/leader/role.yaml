@@ -1,0 +1,26 @@
+# Leader 角色配置（docs/architecture/04 §3.1）
+name: leader
+mode: coordinator             # 协调者：用户-facing，接指令、规划、分派、决策、汇报
+description: 团队指挥官：接收用户目标、预规划、分派执行并如实汇报结果
+instruction_file: AGENT.md
+# model 留空表示继承系统 Default；只有用户在 Agent 页固定模型时才写入该字段。
+# 深度模型不在安装模板中预置，避免新安装隐式依赖未配置的外部服务。
+
+tools:
+  namespaces: [system.*, artifact.*, execute, execute_host, plan.suggest, map.query]   # Skill 正文由 Eino Middleware 渐进加载
+  pinned: [system.time, plan.suggest, map.query]             # 常驻工具：启用 tool_search 时不经检索始终注入
+  tool_search: true                              # 动态工具数超阈值（8）时经 ToolSearch 检索出现，以下全量注入
+
+limits:
+  max_turns: 10               # ReAct 最大轮次
+  context_tokens: 120000      # 上下文 token 预算（历史压缩按 60% 触发）
+
+interrupt:
+  approval_required: [artifact.put]    # 仅写操作需审批（risk 注解已覆盖 put=high；list/get 只读不审批）
+
+memory:
+  long_term: false            # 长期知识库检索（Phase 2 落地）
+
+skills:
+  # Project 可继续收窄该集合，但不能额外授权 Profile 未列出的 Skill。
+  allowlist: [artifact-usage, echo-guide, data-profile, semantic-diagnostics, depalletizing-workflow-planning]

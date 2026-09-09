@@ -1,0 +1,26 @@
+name: robot
+mode: worker
+description: 查询 Robot 状态、协作分析，并通过 Robot Skill 执行用户指令或已批准的任务
+instruction_file: AGENT.md
+
+tools:
+  # Robot Agent 不接触 Robot SDK、Ability 或仿真引擎；所有物理执行都经这三个工具。
+  namespaces: [robot.*, map.query, artifact.get, artifact.list, interaction.ask]
+  pinned: [robot.get, robot.run, robot.stop, map.query, artifact.get, artifact.list]
+  tool_search: false
+
+limits:
+  max_turns: 20
+  context_tokens: 60000
+
+# Robot 工具的安全边界由工具风险注解和持久化 Workflow/SubTask 范围共同判断：
+# 范围外 robot.run 仍因 high-risk 注解触发审批，批准范围内不重复弹窗；
+# robot.stop 是收敛现有动作的安全操作，不等待新审批。
+interrupt:
+  approval_required: []
+
+memory:
+  long_term: false
+
+skills:
+  allowlist: [depalletizing-robot-task]

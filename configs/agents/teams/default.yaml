@@ -1,0 +1,15 @@
+# 默认 Agent Team：Leader 负责用户对话，Query 作为按需 SubAgent；持久 Task
+# Worker 只进入 Workflow Runtime。Robot Worker 按实际 Robot 动态生成身份，
+# 因此这里不再预置 robot-1。
+name: default
+leader:
+  role: leader
+members:
+  - id: query-1
+    role: query
+  - id: developer-1
+    role: developer
+  - id: map-1
+    role: map
+  - id: monitor-1
+    role: monitor

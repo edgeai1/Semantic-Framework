@@ -1,0 +1,30 @@
+schema_version: 1
+installation_id: local-libero-1-4
+development: true
+profile:
+  runtime_profile_id: libero-robosuite-1.4
+  name: LIBERO / LIBERO-Pro
+  engine: mujoco
+  loader: libero
+  api_version: v1
+  scene_kinds: [libero, libero_pro]
+  capabilities:
+    editable_scene: false
+    native_evaluator: true
+    viewer: true
+    viewer_camera_modes: [fixed]
+    scene_step: true
+    scene_reset: true
+    robot_models: [franka_panda]
+    sensor_kinds: [rgb, depth, contact, robot_state]
+launch_mode: uv
+endpoint: http://127.0.0.1:8092
+workdir: ${SEMANTIC_MUJOCO_WORKDIR}
+command: [uv, run, --project, profiles/libero, --frozen, semantic-sim-runtime]
+environment_refs:
+  SEMANTIC_LIBERO_ROOT: SEMANTIC_LIBERO_ROOT
+  FRANKA_MODEL_ROOT: SEMANTIC_FRANKA_MODEL_ROOT
+hardware_requirements:
+  cpu: x86_64
+enabled: true
+installed_version: libero-robosuite-1.4

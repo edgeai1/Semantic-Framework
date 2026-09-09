@@ -1,0 +1,22 @@
+{
+  "runtime_profile_id": "native-mujoco",
+  "name": "Native MuJoCo",
+  "engine": "mujoco",
+  "loader": "native",
+  "api_version": "v1",
+  "scene_kinds": ["scene_document", "asset_scene"],
+  "capabilities": {
+    "editable_scene": true,
+    "native_evaluator": false,
+    "viewer": true,
+    "viewer_camera_modes": ["free", "fixed"],
+    "scene_step": true,
+    "scene_reset": true,
+    "robot_models": ["r1_pro_chassis"],
+    "sensor_kinds": ["rgb", "depth", "contact", "holding"]
+  },
+  "environment": "project",
+  "environment_ready": true,
+  "available": true,
+  "unavailable_reason": null
+}

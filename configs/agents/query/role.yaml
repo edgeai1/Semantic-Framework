@@ -1,0 +1,30 @@
+# Query 角色配置（docs/architecture/04 §3.1）
+name: query
+mode: service                 # 服务者：请求-响应，短调用出结果
+description: 系统与产物查询助手：回答系统状态与产物内容的查询，简洁准确
+instruction_file: AGENT.md
+# model 留空表示继承系统 Default；只有用户在 Agent 页固定模型时才写入该字段。
+
+tools:
+  namespaces: [system.*, artifact.get, artifact.list]   # 只读系统信息与产物查询
+  pinned: [artifact.get, artifact.list]   # 常驻工具：产物读取与列举不经检索始终注入
+  tool_search: false          # 工具数量大时启用 ToolSearch 动态检索
+
+limits:
+  max_turns: 6                # 查询是短调用，轮次从紧
+  context_tokens: 60000       # 上下文 token 预算（历史压缩按 60% 触发）
+
+interrupt:
+  approval_required: []       # 只读查询无审批面
+
+memory:
+  long_term: false            # 长期知识库检索（Phase 2 落地）
+
+skills:
+  allowlist: []               # Query 只使用查询工具，不加载执行类 Skill
+
+subagent:
+  enabled: true               # 注册为 Leader/Task Agent 的短时只读咨询工具
+  tool_name: ask_query        # 调用方模型侧函数名
+  tool_description: 系统状态与产物查询助手：回答系统运行状态与产物内容的查询
+  # max_turns 缺省沿用 limits.max_turns（6，短调用从紧）

@@ -1,0 +1,80 @@
+# semantic-server 内置配置模板（全仓唯一模板；与 pkg/config 的 Default() 保持一致）。
+# 运行期禁止写回本文件；semantic init 会复制模板并重写数据、Agent、Skill 路径。
+# 端口以 docs/ports-and-services.md 为准；密钥类配置只从环境变量读取，禁止写入本文件。
+# 环境变量覆盖约定：前缀 SEMANTIC_，嵌套字段以 _ 分隔，如 SEMANTIC_SERVER_HTTP_ADDR。
+server:
+  http_addr: ":8080"        # HTTP 服务监听地址
+  ws_addr: ":8081"          # WebSocket 服务监听地址
+  read_timeout: 10s         # HTTP 请求读取超时
+  # Runtime 首次启动最多等待 20 秒；写超时必须覆盖该窗口，否则 Studio 收不到成功响应。
+  write_timeout: 30s        # HTTP 响应写入超时
+
+log:
+  level: info               # 日志最低级别：trace/debug/info/warn/error/fatal
+
+store:
+  driver: sqlite            # 元数据存储驱动，默认零外部依赖
+  sqlite_path: .output/semantic.db # 模板占位；semantic init 改为安装根目录下 data/semantic.db
+
+# LLM 安装模板只保留 mock，真实服务必须从前端“系统设置”中添加端点并托管 Token。
+# 部署仍可用 SEMANTIC_LLM_API_KEY_<服务名大写，'-' 转 '_'> 覆盖前端托管密钥；
+# 同一 service 的多个端点共享一把 key。无 key 时仅 mock 可用，服务不阻塞启动。
+# 端点 options（temperature/max_tokens/reasoning_effort/timeout_seconds）支持
+# 在设置页按端点调整；新增 openai 端点会自动物化默认 timeout_seconds: 300 与
+# max_tokens: 16384，详见开发者文档 extension-development/model-provider.md。
+llm:
+  default: mock   # 全局默认模型（providers 中的名称）
+  providers:
+    mock:                   # 无 key 开发测试用，不发起真实请求
+      component: mock
+      model: "mock"
+      capabilities: [text, tool_call]
+      price: {prompt: 0, completion: 0}
+
+# Agent 运行时（docs/architecture/04 §9）
+agents:
+  profiles_dir: configs/agents    # 模板相对路径；semantic init 改为安装副本的绝对路径
+  teams_dir: configs/agents/teams # 模板相对路径；semantic init 改为安装副本的绝对路径
+
+# 技能系统（docs/architecture/06）
+skills:
+  dir: configs/skills           # 模板相对路径；semantic init 改为安装副本的绝对路径
+
+# 命令执行服务端总开关。宿主执行默认关闭，即使前端请求开启也不会放行。
+execution:
+  allow_host: false
+
+# 仿真 Runtime 与离线场景目录由管理员维护。Studio 不在浏览器中安装依赖。
+simulation:
+  runtimes_dir: configs/runtimes.d
+  catalog_dir: configs/scenes.d
+
+# Server 托管的仿真 Robot 实例。默认关闭，只有安装了构建完成的类型包后启用。
+robot_runtime:
+  enabled: false
+  bundles_dir: .output/robot-bundles
+  data_root: .output
+  server_http_url: http://127.0.0.1:8080
+  server_websocket_url: ws://127.0.0.1:8081/ws/pilot
+  ability_port_first: 18100
+  ability_port_last: 18199
+
+
+# MCP server 连接清单（docs/architecture/16 §3）。R16 mcpregistry 消费本段：
+# 连接各 server 发现工具并入目录。传输只支持 http（streamable，远程/卫星）与
+# stdio（本地 sidecar）。env 覆盖：SEMANTIC_MCP_SERVERS（JSON 数组，整体替换）。
+# 热重载白名单段（当前钩子为空实现，R16 接入后生效）。
+mcp_servers: []
+#  - name: semantic-map          # server 唯一标识（即工具命名空间：<name>.<tool>）
+#    transport: http              # http(streamable) | stdio
+#    endpoint: "http://127.0.0.1:8082/mcp"
+#    enabled: true                # false 保留配置但不连接
+#    risk: medium                 # 该 server 全部工具的风险覆盖 low|medium|high|critical（默认 medium）
+#    namespace: map               # 预留字段，R16 暂未消费（命名空间 = server 名）
+#  - name: local-helper
+#    transport: stdio
+#    command: "/usr/local/bin/helper-mcp"
+#    args: ["--serve"]
+#    env: ["HELPER_TOKEN=xxx"]    # 追加到子进程环境；密钥建议走 .env 注入
+#    enabled: false
+#    namespace: helper

@@ -1,0 +1,110 @@
+# 规范 SemVer 标签才进入 CD。发布复用 build artifact，不再编一次二进制。
+validate_release:
+  stage: validate
+  extends:
+    - .release_tag_rules
+    - .golang_image
+  script:
+    - bash ci/validate-release.sh
+
+package:
+  stage: package
+  extends:
+    - .release_tag_rules
+    - .alpine_image
+  needs:
+    - job: validate_release
+    - job: build
+      artifacts: true
+    - job: v050_real_gate
+      optional: true
+    - job: v050_mujoco_product
+      optional: true
+    - job: v040_simulation_plugin_real
+      optional: true
+    - job: v040_simulation_profile_real
+      optional: true
+    - job: v040_simulation_libero_real
+      optional: true
+  before_script:
+    - sh ci/use-alpine-mirror.sh
+    - apk add --no-cache coreutils
+  script:
+    - test -n "$BUILD_VERSION"
+    - PACKAGE_FILE="$CI_PROJECT_PATH_SLUG-$CI_COMMIT_TAG.tar.gz"
+    - tar -czf "$PACKAGE_FILE" .output/bin configs README.md CHANGELOG.md
+    - CHECKSUM_FILE="${PACKAGE_FILE}.sha256"
+    - sha256sum "$PACKAGE_FILE" > "$CHECKSUM_FILE"
+    - printf 'PACKAGE_FILE=%s\nCHECKSUM_FILE=%s\n' "$PACKAGE_FILE" "$CHECKSUM_FILE" > package.env
+  artifacts:
+    paths:
+      - "*.tar.gz"
+      - "*.sha256"
+    reports:
+      dotenv: package.env
+    expire_in: 30 days
+
+publish_package:
+  stage: publish
+  extends:
+    - .release_tag_rules
+    - .alpine_image
+  environment:
+    name: package-registry
+  needs:
+    - job: package
+      artifacts: true
+  before_script:
+    - sh ci/use-alpine-mirror.sh
+    - apk add --no-cache curl
+  script:
+    - |
+      BASE_URL="${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/${PACKAGE_REGISTRY_NAME}/${CI_COMMIT_TAG}"
+      curl --location --fail-with-body --header "JOB-TOKEN: ${CI_JOB_TOKEN}" \
+        --upload-file "$PACKAGE_FILE" "${BASE_URL}/${PACKAGE_FILE}"
+      curl --location --fail-with-body --header "JOB-TOKEN: ${CI_JOB_TOKEN}" \
+        --upload-file "$CHECKSUM_FILE" "${BASE_URL}/${CHECKSUM_FILE}"
+      # create_release 只读取本 Job 的 dotenv，因此在这里完整传递两个文件名和下载地址。
+      printf 'PACKAGE_FILE=%s\nCHECKSUM_FILE=%s\nRELEASE_PACKAGE_URL=%s\nRELEASE_CHECKSUM_URL=%s\n' \
+        "$PACKAGE_FILE" "$CHECKSUM_FILE" \
+        "${BASE_URL}/${PACKAGE_FILE}" "${BASE_URL}/${CHECKSUM_FILE}" > publish.env
+  artifacts:
+    reports:
+      dotenv: publish.env
+    expire_in: 30 days
+
+create_release:
+  stage: release
+  extends: .release_cli_image
+  interruptible: false
+  environment:
+    name: production-release
+  rules:
+    - if: '$CI_COMMIT_TAG =~ /^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)-(alpha|beta|rc)\.(0|[1-9][0-9]*)$/'
+      variables:
+        RELEASE_LABEL: "预发布"
+    - if: '$CI_COMMIT_TAG =~ /^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$/'
+      variables:
+        RELEASE_LABEL: "正式版"
+    - when: never
+  needs:
+    - job: publish_package
+      artifacts: true
+  script:
+    - test -s "$CHANGELOG_FILE"
+    - test -n "$PACKAGE_FILE"
+    - test -n "$CHECKSUM_FILE"
+    - test -n "$RELEASE_PACKAGE_URL"
+    - test -n "$RELEASE_CHECKSUM_URL"
+  release:
+    tag_name: '$CI_COMMIT_TAG'
+    name: 'Release $CI_COMMIT_TAG（$RELEASE_LABEL）'
+    description: './CHANGELOG.md'
+    assets:
+      links:
+        - name: '$PACKAGE_FILE'
+          url: '$RELEASE_PACKAGE_URL'
+          link_type: package
+        - name: '$CHECKSUM_FILE'
+          url: '$RELEASE_CHECKSUM_URL'
+          link_type: other

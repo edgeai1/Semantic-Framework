@@ -1,0 +1,69 @@
+// Copyright 2026 InsightOS
+// SPDX-License-Identifier: Apache-2.0
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     https://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+package robotruntime
+
+import (
+	"os"
+	"path/filepath"
+	"testing"
+)
+
+func TestLoadCatalogReadsBundleMatchProfiles(t *testing.T) {
+	root := t.TempDir()
+	bundleDirectory := filepath.Join(root, "r1pro-mujoco", "0.5.0")
+	if err := os.MkdirAll(bundleDirectory, 0o750); err != nil {
+		t.Fatal(err)
+	}
+	manifest := []byte(`apiVersion: semantic.insightos.cn/v1alpha1
+kind: RobotRuntimeBundle
+metadata:
+  name: r1pro-mujoco
+  version: 0.5.0
+spec:
+  robot:
+    model: r1_pro_chassis
+    backendProfiles:
+      - backend: mujoco
+        profile: r1pro-tote-mujoco-v1
+      - backend: fake
+        profile: r1pro-tote-fake-v1
+`)
+	if err := os.WriteFile(filepath.Join(bundleDirectory, "bundle.yaml"), manifest, 0o640); err != nil {
+		t.Fatal(err)
+	}
+	catalog, err := LoadCatalog(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, key := range []MatchKey{
+		{RobotModel: "r1_pro_chassis", Backend: "mujoco", BackendProfile: "r1pro-tote-mujoco-v1"},
+		{RobotModel: "r1_pro_chassis", Backend: "fake", BackendProfile: "r1pro-tote-fake-v1"},
+	} {
+		bundle, resolveErr := catalog.Resolve(key)
+		if resolveErr != nil {
+			t.Fatalf("无法匹配 %+v: %v", key, resolveErr)
+		}
+		if bundle.Path != bundleDirectory || bundle.Name != "r1pro-mujoco" || bundle.Version != "0.5.0" {
+			t.Fatalf("Bundle 信息错误: %+v", bundle)
+		}
+	}
+}
+
+func TestLoadCatalogRejectsEmptyStore(t *testing.T) {
+	if _, err := LoadCatalog(t.TempDir()); err == nil {
+		t.Fatal("空 Bundle Store 不应启用受管 Robot Runtime")
+	}
+}

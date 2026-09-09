@@ -1,0 +1,57 @@
+<!doctype html>
+<!--
+Copyright 2026 InsightOS
+SPDX-License-Identifier: Apache-2.0
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    https://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>R1 Pro MuJoCo 实时相机</title>
+    <style>
+      :root { color-scheme: dark; font-family: system-ui, sans-serif; }
+      body { margin: 0; background: #101722; color: #eef3fa; }
+      main { min-height: 100vh; display: grid; place-items: center; gap: 12px; }
+      img { width: min(94vw, 1280px); border: 1px solid #334155; border-radius: 12px; background: #05080d; }
+      p { margin: 0; color: #9fb0c5; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <img id="camera" alt="R1 Pro MuJoCo 实时相机">
+      <p id="status">正在连接 Runtime camera.rgb…</p>
+    </main>
+    <script>
+      const query = new URLSearchParams(location.search)
+      const endpoint = query.get("endpoint") || "http://127.0.0.1:18090"
+      const robot = query.get("robot") || "r1_pro_tote_gripper-1"
+      const camera = document.querySelector("#camera")
+      const status = document.querySelector("#status")
+      const refresh = () => {
+        camera.src = `${endpoint}/robots/${encodeURIComponent(robot)}/sensors/camera.rgb/frames/latest/content?t=${Date.now()}`
+      }
+      camera.addEventListener("load", () => {
+        status.textContent = `${robot} · camera.rgb · ${new Date().toLocaleTimeString()}`
+        setTimeout(refresh, 100)
+      })
+      camera.addEventListener("error", () => {
+        status.textContent = "画面读取失败，正在重试…"
+        setTimeout(refresh, 1000)
+      })
+      refresh()
+    </script>
+  </body>
+</html>
