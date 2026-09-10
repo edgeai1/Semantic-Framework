@@ -174,6 +174,8 @@ Semantic 的组件围绕共同的任务模型和执行链路协作。你可以�
 
 欢迎为核心服务、Studio、机器人技能、设备适配、场景和文档贡献代码与想法。你可以先通过 Issue 描述希望支持的任务，也可以直接向对应组件仓库提交 Pull Request，并附上可复现示例与适合该变更的验证结果。协作流程见[贡献指南](https://github.com/insightos-community/semantic-docs/blob/main/docs/developer/reference/contributing/_index.md)。
 
+[CI 与 Tag 制品发布](docs/ci-release.md)
+
 ## 许可证
 
 Copyright 2026 InsightOS。自有代码采用 [Apache-2.0](LICENSE) 许可证。第三方组件与资产的说明见 [NOTICE](NOTICE) 和 [LICENSE_SCOPE.md](LICENSE_SCOPE.md)。
