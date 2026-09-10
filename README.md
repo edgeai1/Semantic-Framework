@@ -175,6 +175,8 @@ Semantic is developed across repositories that share one task and execution mode
 
 Contributions to the core, Studio, skills, robot adapters, scenes, and documentation are welcome. Open an issue with the task you want to support, or submit a pull request to the relevant component repository. Include a reproducible example and validation appropriate to the change. See the [contributor guide](https://github.com/insightos-community/semantic-docs/blob/main/docs/developer/reference/contributing/_index.md) for the broader workflow.
 
+[CI and Tag releases](docs/ci-release.md)
+
 ## License
 
 Copyright 2026 InsightOS. First-party code is licensed under [Apache-2.0](LICENSE). See [NOTICE](NOTICE) and [LICENSE_SCOPE.md](LICENSE_SCOPE.md) for third-party components and assets.
